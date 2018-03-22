@@ -29,6 +29,8 @@ export function parsePath (path: string): any {
     return
   }
   const segments = path.split('.')
+  // 这里是vue如何分析watch的, 就是接受 '.' 分隔的变量.
+  // 如果键是'a.b.c', 也就等于function () {return this.a.b.c}
   return function (obj) {
     for (let i = 0; i < segments.length; i++) {
       if (!obj) return

@@ -19,6 +19,7 @@ import {
 
 export function initGlobalAPI (Vue: GlobalAPI) {
   // config
+  // 把config挂到vue上, 并阻止直接用`Vue.config = xxx`来修改
   const configDef = {}
   configDef.get = () => config
   if (process.env.NODE_ENV !== 'production') {
@@ -33,12 +34,14 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.
+  // 暴露工具方法, 这些的危险的方法, 是作为阅读源码以后的奖励---黑魔法(文档里没)
   Vue.util = {
     warn,
     extend,
     mergeOptions,
     defineReactive
   }
+  // 下面这3个是公共api了, 文档里有
 
   Vue.set = set
   Vue.delete = del

@@ -45,14 +45,17 @@ export default class Dep {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 这是一个队列, 因为不允许有多个watcher的get方法同时调用
 Dep.target = null
 const targetStack = []
 
 export function pushTarget (_target: ?Watcher) {
+  // 设置target, 把旧的放进stack
   if (Dep.target) targetStack.push(Dep.target)
   Dep.target = _target
 }
 
 export function popTarget () {
+  // 从stack拿一个作为当前的
   Dep.target = targetStack.pop()
 }

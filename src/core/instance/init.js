@@ -13,6 +13,7 @@ import { extend, mergeOptions, formatComponentName } from '../util/index'
 let uid = 0
 
 export function initMixin (Vue: Class<Component>) {
+  // vue构造方法中唯一调用的方法: vue._init(), 对参数进行处理.
   Vue.prototype._init = function (options?: Object) {
     const vm: Component = this
     // a uid
@@ -20,6 +21,7 @@ export function initMixin (Vue: Class<Component>) {
 
     let startTag, endTag
     /* istanbul ignore if */
+    // 如果配置里有'performance'就打印性能
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
       startTag = `vue-perf-start:${vm._uid}`
       endTag = `vue-perf-end:${vm._uid}`
@@ -49,6 +51,8 @@ export function initMixin (Vue: Class<Component>) {
     }
     // expose real self
     vm._self = vm
+    // 下面这串是启动过程
+
     initLifecycle(vm)
     initEvents(vm)
     initRender(vm)
@@ -64,6 +68,7 @@ export function initMixin (Vue: Class<Component>) {
       mark(endTag)
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
+    // 最后如果有el就调用$mount(el)
 
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)

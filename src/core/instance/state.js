@@ -36,13 +36,18 @@ const sharedPropertyDefinition = {
 }
 
 export function proxy (target: Object, sourceKey: string, key: string) {
+  // 在initData中调用: proxy(vm, `_data`, key)
+  // target: vm, sourceKey: _data, key: key. 这里的key为遍历data的key
+  // 举例: data为{a: 'a value', b: 'b value'}
+  // 那么这里执行的target: vm, sourceKey: _data, key: a
   sharedPropertyDefinition.get = function proxyGetter () {
-    return this[sourceKey][key]
+    return this[sourceKey][key] // getter: vm._data.a
   }
   sharedPropertyDefinition.set = function proxySetter (val) {
-    this[sourceKey][key] = val
+    this[sourceKey][key] = val // setter: vm._data.a = val
   }
-  Object.defineProperty(target, key, sharedPropertyDefinition)
+  Object.defineProperty(target, key, sharedPropertyDefinition) // 用Object.defineProperty来设置getter, setter
+  // 第一个参数是vm, 也就是获取`vm.a`就获取到了`vm._data.a`, 设置也是如此.
 }
 
 export function initState (vm: Component) {
@@ -53,7 +58,7 @@ export function initState (vm: Component) {
   if (opts.data) {
     initData(vm)
   } else {
-    observe(vm._data = {}, true /* asRootData */)
+    observe(vm._data = {}, true /* asRootData */) // 如果没有data, _data效果一样, 只是没做代理
   }
   if (opts.computed) initComputed(vm, opts.computed)
   if (opts.watch && opts.watch !== nativeWatch) {
@@ -111,10 +116,10 @@ function initProps (vm: Component, propsOptions: Object) {
 
 function initData (vm: Component) {
   let data = vm.$options.data
-  data = vm._data = typeof data === 'function'
+  data = vm._data = typeof data === 'function' // 如果data是函数, 用vm作为this执行函数的结果作为data
     ? getData(data, vm)
     : data || {}
-  if (!isPlainObject(data)) {
+  if (!isPlainObject(data)) { // 过滤乱搞, data只接受对象, 如果乱搞会报警并且把data认为是空对象
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
       'data functions should return an object:\n' +
@@ -127,24 +132,24 @@ function initData (vm: Component) {
   const props = vm.$options.props
   const methods = vm.$options.methods
   let i = keys.length
-  while (i--) {
+  while (i--) { // 遍历data
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
-      if (methods && hasOwn(methods, key)) {
+      if (methods && hasOwn(methods, key)) { // 判断是否和methods重名
         warn(
           `Method "${key}" has already been defined as a data property.`,
           vm
         )
       }
     }
-    if (props && hasOwn(props, key)) {
+    if (props && hasOwn(props, key)) { // 判断是否和props重名
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) {
-      proxy(vm, `_data`, key)
+    } else if (!isReserved(key)) { // 判断key是否以_或$开头
+      proxy(vm, `_data`, key) // 代理data
     }
   }
   // observe data
@@ -173,6 +178,9 @@ function initComputed (vm: Component, computed: Object) {
   const isSSR = isServerRendering()
 
   for (const key in computed) {
+    // 循环每个computed
+    // ------------
+    // 格式滤错滤空
     const userDef = computed[key]
     const getter = typeof userDef === 'function' ? userDef : userDef.get
     if (process.env.NODE_ENV !== 'production' && getter == null) {
@@ -184,6 +192,7 @@ function initComputed (vm: Component, computed: Object) {
 
     if (!isSSR) {
       // create internal watcher for the computed property.
+      // 为computed建立wathcer
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -195,6 +204,7 @@ function initComputed (vm: Component, computed: Object) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 因为没有被代理, computed属性是不能通过vm.xx获得的, 如果可以获得说明重复定义, 抛出异常.
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -213,6 +223,7 @@ export function defineComputed (
   userDef: Object | Function
 ) {
   const shouldCache = !isServerRendering()
+  // 因为computed除了function还有get set 字段的语法, 下面的代码是做api的兼容
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache
       ? createComputedGetter(key)
@@ -228,6 +239,7 @@ export function defineComputed (
       ? userDef.set
       : noop
   }
+  // 除非设置setter, computed属性是不能被修改的, 抛出异常 (evan说改变了自由哲学, 要控制低级用户)
   if (process.env.NODE_ENV !== 'production' &&
       sharedPropertyDefinition.set === noop) {
     sharedPropertyDefinition.set = function () {
@@ -237,6 +249,7 @@ export function defineComputed (
       )
     }
   }
+  // 其实核心就下面这步... 上面步骤的作用是和data一样添加一个getter, 增加append动作. 现在通过vm.xxx可以获取到computed属性啦!
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
@@ -349,7 +362,7 @@ export function stateMixin (Vue: Class<Component>) {
     }
     options = options || {}
     options.user = true
-    const watcher = new Watcher(vm, expOrFn, cb, options)
+    const watcher = new Watcher(vm, expOrFn, cb, options) // 最终调用这个
     if (options.immediate) {
       cb.call(vm, watcher.value)
     }

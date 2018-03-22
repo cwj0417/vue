@@ -42,10 +42,6 @@
     "release:note": "node scripts/gen-release-note.js",
     "commit": "git-cz"
   },
-  "gitHooks": {
-    "pre-commit": "lint-staged",
-    "commit-msg": "node scripts/verify-commit-msg.js"
-  },
   "lint-staged": {
     "*.js": [
       "eslint --fix",
@@ -70,7 +66,7 @@
     "@types/webpack": "^3.0.13",
     "acorn": "^5.2.1",
     "babel-core": "^6.25.0",
-    "babel-eslint": "^8.0.3",
+    "babel-eslint": "^8.2.2",
     "babel-helper-vue-jsx-merge-props": "^2.0.2",
     "babel-loader": "^7.0.0",
     "babel-plugin-istanbul": "^4.1.4",

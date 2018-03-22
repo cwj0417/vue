@@ -5,6 +5,10 @@ import { eventsMixin } from './events'
 import { lifecycleMixin } from './lifecycle'
 import { warn } from '../util/index'
 
+// 此文件是vue核心入口
+
+// vue的构造函数, 调用了_init, _init方法是在下面`initMixin()`里定义的
+
 function Vue (options) {
   if (process.env.NODE_ENV !== 'production' &&
     !(this instanceof Vue)
@@ -13,6 +17,8 @@ function Vue (options) {
   }
   this._init(options)
 }
+
+// 各个vue的核心部分: init, state, events, lifecycle, render
 
 initMixin(Vue)
 stateMixin(Vue)

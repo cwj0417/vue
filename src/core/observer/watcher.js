@@ -47,11 +47,11 @@ export default class Watcher {
     options?: ?Object,
     isRenderWatcher?: boolean
   ) {
-    this.vm = vm
+    this.vm = vm // 保存vm
     if (isRenderWatcher) {
       vm._watcher = this
     }
-    vm._watchers.push(this)
+    vm._watchers.push(this)  // 把watcher存到vm里
     // options
     if (options) {
       this.deep = !!options.deep
@@ -69,10 +69,11 @@ export default class Watcher {
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
-    this.expression = process.env.NODE_ENV !== 'production'
+    this.expression = process.env.NODE_ENV !== 'production' // 非生产环境就记录expOrFn
       ? expOrFn.toString()
       : ''
     // parse expression for getter
+    // 设置getter, parse字符串, 并滤空滤错
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
@@ -87,6 +88,7 @@ export default class Watcher {
         )
       }
     }
+    // 调用get获得值
     this.value = this.lazy
       ? undefined
       : this.get()
@@ -97,10 +99,16 @@ export default class Watcher {
    */
   get () {
     pushTarget(this)
+    // 进入队列, 把当前watcher设置为Dep.target
+    // 这样下面调用getter的时候出发的dep.append() (最后调用Dep.target.addDep()) 就会调用这个watcher的addDep.
     let value
     const vm = this.vm
     try {
       value = this.getter.call(vm, vm)
+      // 调用getter的时候会走一遍表达式,
+      // 如果是 this.a + this.b , 会在a和b的getter中调用Dep.target.addDep(), 最后结果就调用了当前watcher的addDep,
+      // 当前watcher就有了this.a的dep和this.b的dep
+      // addDep把当前watcher加入了dep的sub(subscribe)里, dep的notify()调用就会运行本watcher的run()方法.
     } catch (e) {
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
@@ -110,11 +118,13 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 走到这里已经通过了getter获得到了value, 或者失败为undefined, 这个值返回作为watcher的valule
+      // 处理deep选项 (待看)
       if (this.deep) {
         traverse(value)
       }
-      popTarget()
-      this.cleanupDeps()
+      popTarget() // 移除队列
+      this.cleanupDeps() // 清理依赖(addDep加到newDep数组, 这步做整理动作)
     }
     return value
   }

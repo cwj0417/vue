@@ -3,6 +3,8 @@
 import { toArray } from '../util/index'
 
 export function initUse (Vue: GlobalAPI) {
+  // 为vue注册`Vue.use()`方法, 注册插件使用的
+  // 插件直接为方法或者install是方法就会把vue作为参数传入插件.
   Vue.use = function (plugin: Function | Object) {
     const installedPlugins = (this._installedPlugins || (this._installedPlugins = []))
     if (installedPlugins.indexOf(plugin) > -1) {

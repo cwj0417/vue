@@ -1,9 +1,9 @@
-import Vue from './instance/index'
+import Vue from './instance/index' // 这个是核心入口
 import { initGlobalAPI } from './global-api/index'
 import { isServerRendering } from 'core/util/env'
 import { FunctionalRenderContext } from 'core/vdom/create-functional-component'
 
-// 核心入口
+// 暴露api入口
 initGlobalAPI(Vue)
 
 Object.defineProperty(Vue.prototype, '$isServer', {

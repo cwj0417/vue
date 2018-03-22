@@ -40,18 +40,18 @@ export class Observer {
   vmCount: number; // number of vms that has this object as root $data
 
   constructor (value: any) {
-    this.value = value
-    this.dep = new Dep()
+    this.value = value // 保存值
+    this.dep = new Dep() // dep对象
     this.vmCount = 0
-    def(value, '__ob__', this)
-    if (Array.isArray(value)) {
+    def(value, '__ob__', this)  // 自己的副本, 放到__ob__属性下, 作为单例依据的缓存
+    if (Array.isArray(value)) {  // 判断是否为数组, 如果是数组的话劫持一些数组的方法, 在调用这些方法的时候进行通知.
       const augment = hasProto
         ? protoAugment
         : copyAugment
       augment(value, arrayMethods, arrayKeys)
-      this.observeArray(value)
+      this.observeArray(value)  // 遍历数组, 继续监察数组的每个元素
     } else {
-      this.walk(value)
+      this.walk(value)  // 直到不再是数组(是对象了), 遍历对象, 劫持每个对象来发出通知
     }
   }
 
@@ -63,7 +63,7 @@ export class Observer {
   walk (obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
-      defineReactive(obj, keys[i])
+      defineReactive(obj, keys[i]) // 用'obj[keys[i]]'这种方式是为了在函数中直接给这个赋值就行了
     }
   }
 
@@ -107,13 +107,13 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * or the existing observer if the value already has one.
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
-  if (!isObject(value) || value instanceof VNode) {
+  if (!isObject(value) || value instanceof VNode) {  // 只能是监察对象, 过滤非法参数
     return
   }
   let ob: Observer | void
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
-    ob = value.__ob__
-  } else if (
+    ob = value.__ob__  // 如果已被监察过, 返回存在的监察对象
+  } else if (  // 符合下面条件就新建一个监察对象, 如果不符合就返回undefined
     shouldObserve &&
     !isServerRendering() &&
     (Array.isArray(value) || isPlainObject(value)) &&
@@ -132,16 +132,18 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
  * Define a reactive property on an Object.
  */
 export function defineReactive (
-  obj: Object,
-  key: string,
-  val: any,
+  // 这个方法是劫持对象key的动作
+  // 这里还是举例: 对象为 {a: 'value a', b: 'value b'}, 当前遍历到a
+  obj: Object, // {a: 'value a', b: 'value b'}
+  key: string, // a
+  val: any, // value a
   customSetter?: ?Function,
   shallow?: boolean
 ) {
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
-  if (property && property.configurable === false) {
+  if (property && property.configurable === false) { // 判断当前key的操作权限
     return
   }
 
@@ -152,13 +154,13 @@ export function defineReactive (
   }
   const setter = property && property.set
 
-  let childOb = !shallow && observe(val)
+  let childOb = !shallow && observe(val) // childOb是val的监察对象(就是new Observe(val), 也就是递归调用)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
-      const value = getter ? getter.call(obj) : val
-      if (Dep.target) {
+      const value = getter ? getter.call(obj) : val // 如果本身有getter, 先调用
+      if (Dep.target) {  // 如果有dep.target, 进行一些处理, 最后返回value, if里的代码我们之后去dep的代码中研究
         dep.depend()
         if (childOb) {
           childOb.dep.depend()
@@ -170,22 +172,22 @@ export function defineReactive (
       return value
     },
     set: function reactiveSetter (newVal) {
-      const value = getter ? getter.call(obj) : val
+      const value = getter ? getter.call(obj) : val // 如果本身有getter, 先调用
       /* eslint-disable no-self-compare */
-      if (newVal === value || (newVal !== newVal && value !== value)) {
+      if (newVal === value || (newVal !== newVal && value !== value)) { // 如果值不变就不去做通知了, (或是某个值为Nan?)
         return
       }
       /* eslint-enable no-self-compare */
       if (process.env.NODE_ENV !== 'production' && customSetter) {
-        customSetter()
+        customSetter() // 根据"生产环境不执行"这个行为来看, 这个方法可能作用是log, 可能是保留方法, 还没地方用?
       }
-      if (setter) {
+      if (setter) { // 如果本身有setter, 先调用, 没的话就直接赋值
         setter.call(obj, newVal)
       } else {
-        val = newVal
+        val = newVal // 因为传入参数的时候其实是'obj[keys[i]]', 所以就等于是'obj[key] = newVal'了
       }
-      childOb = !shallow && observe(newVal)
-      dep.notify()
+      childOb = !shallow && observe(newVal) // 重新建立子监察
+      dep.notify() // 通知, 可以说是劫持的核心步骤
     }
   })
 }
