@@ -60,7 +60,7 @@ export function renderMixin (Vue: Class<Component>) {
 
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
-    const { render, _parentVnode } = vm.$options
+    const { render, _parentVnode } = vm.$options // todo: render和_parentVnode的由来
 
     // reset _rendered flag on slots for duplicate slot check
     if (process.env.NODE_ENV !== 'production') {
@@ -82,6 +82,7 @@ export function renderMixin (Vue: Class<Component>) {
     try {
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {
+      // catch其实不需要看了, 都是做异常处理, _vnode是在vm._update的时候保存的, 也就是上次的状态或是null(init的时候给的)
       handleError(e, vm, `render`)
       // return error render result,
       // or previous vnode to prevent render error causing blank component

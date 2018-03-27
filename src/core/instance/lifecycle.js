@@ -53,6 +53,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate')
     }
+    // 记录update之前的状态
     const prevEl = vm.$el
     const prevVnode = vm._vnode
     const prevActiveInstance = activeInstance
@@ -60,9 +61,9 @@ export function lifecycleMixin (Vue: Class<Component>) {
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
-    if (!prevVnode) {
+    if (!prevVnode) { // 初次加载, 只有_update方法更新vm._vnode, 初始化是null
       // initial render
-      vm.$el = vm.__patch__(
+      vm.$el = vm.__patch__( // patch创建新dom
         vm.$el, vnode, hydrating, false /* removeOnly */,
         vm.$options._parentElm,
         vm.$options._refElm
@@ -72,7 +73,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
       vm.$options._parentElm = vm.$options._refElm = null
     } else {
       // updates
-      vm.$el = vm.__patch__(prevVnode, vnode)
+      vm.$el = vm.__patch__(prevVnode, vnode) // patch更新dom
     }
     activeInstance = prevActiveInstance
     // update __vue__ reference
@@ -146,8 +147,9 @@ export function mountComponent (
   el: ?Element,
   hydrating?: boolean
 ): Component {
-  vm.$el = el
-  if (!vm.$options.render) {
+  vm.$el = el // 放一份el到自己的属性里
+  if (!vm.$options.render) { // render应该经过处理了, 因为我们经常都是用template或者vue文件
+    // 判断是否存在render函数, 如果没有就把render函数写成空VNode来避免红错, 并报出黄错
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
@@ -172,6 +174,7 @@ export function mountComponent (
   let updateComponent
   /* istanbul ignore if */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+    // 不看这里的代码了, 直接看else里的, 行为是一样的
     updateComponent = () => {
       const name = vm._name
       const id = vm._uid
@@ -197,6 +200,7 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
+  // 注册一个Watcher
   new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */)
   hydrating = false
 
