@@ -31,9 +31,9 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
-  if (!options.render) {
+  if (!options.render) { // 如果没有render方法就尝试把别的字段编译成render方法
     let template = options.template
-    if (template) {
+    if (template) { // 尝试template字段, 没有的话就获取el字段并编译成template
       if (typeof template === 'string') {
         if (template.charAt(0) === '#') {
           template = idToTemplate(template)
@@ -62,11 +62,13 @@ Vue.prototype.$mount = function (
         mark('compile')
       }
 
+      // 把template编译成render函数
+
       const { render, staticRenderFns } = compileToFunctions(template, {
-        shouldDecodeNewlines,
+        shouldDecodeNewlines, // 检测浏览器的行为, 是否会把一些东西url-encode
         shouldDecodeNewlinesForHref,
-        delimiters: options.delimiters,
-        comments: options.comments
+        delimiters: options.delimiters, // 默认是双花括号 '{{' '}}', 用来编译模板的
+        comments: options.comments // 默认是false, 如果true就不丢弃注释
       }, this)
       options.render = render
       options.staticRenderFns = staticRenderFns
@@ -77,6 +79,7 @@ Vue.prototype.$mount = function (
         measure(`vue ${this._name} compile`, 'compile', 'compile end')
       }
     }
+    // 如果所有if都没走到, 那么就没有render方法, 异常将在$mount的时候抛出. 这里没有做处理
   }
   return mount.call(this, el, hydrating)
 }
