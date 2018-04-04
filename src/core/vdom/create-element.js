@@ -95,7 +95,7 @@ export function _createElement (
   let vnode, ns
   if (typeof tag === 'string') {
     let Ctor
-    ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
+    ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag) // 如果有旧的取旧的, 没得就获得, 用来判断svg或者math
     if (config.isReservedTag(tag)) {
       // platform built-in elements
       vnode = new VNode(
@@ -103,12 +103,14 @@ export function _createElement (
         undefined, undefined, context
       )
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+      // resolveAsset: 如果有 options.components[tag], 就返回他, 也就是返回了一个component
       // component
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
+      // 对这个情况在后面做处理~ 这里先正常返回
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
@@ -116,6 +118,7 @@ export function _createElement (
     }
   } else {
     // direct component options / constructor
+    // 另一种语法: 直接传component options的情况
     vnode = createComponent(tag, data, context, children)
   }
   if (Array.isArray(vnode)) {

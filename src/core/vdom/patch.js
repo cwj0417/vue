@@ -73,7 +73,7 @@ export function createPatchFunction (backend) {
 
   const { modules, nodeOps } = backend
 
-  for (i = 0; i < hooks.length; ++i) {
+  for (i = 0; i < hooks.length; ++i) { // 把modules的各个生命周期执行的方法按照"cbs.hookName = [function (){}, function () {}]"的格式推到cbs里.
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
       if (isDef(modules[j][hooks[i]])) {
@@ -164,9 +164,9 @@ export function createPatchFunction (backend) {
       }
 
       vnode.elm = vnode.ns
-        ? nodeOps.createElementNS(vnode.ns, tag)
-        : nodeOps.createElement(tag, vnode)
-      setScope(vnode)
+        ? nodeOps.createElementNS(vnode.ns, tag) // 这个还是针对svg和math
+        : nodeOps.createElement(tag, vnode) // vnode.elm已经是dom了
+      setScope(vnode) // 如果有scoped的话给node的attr加上scope标识
 
       /* istanbul ignore if */
       if (__WEEX__) {
@@ -188,11 +188,11 @@ export function createPatchFunction (backend) {
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
-        createChildren(vnode, children, insertedVnodeQueue)
+        createChildren(vnode, children, insertedVnodeQueue) // 处理子组件
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
         }
-        insert(parentElm, vnode.elm, refElm)
+        insert(parentElm, vnode.elm, refElm) // 把dom插到父组件上
       }
 
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
@@ -286,10 +286,10 @@ export function createPatchFunction (backend) {
         checkDuplicateKeys(children)
       }
       for (let i = 0; i < children.length; ++i) {
-        createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
+        createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i) // 递归调用createElm
       }
     } else if (isPrimitive(vnode.text)) {
-      nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
+      nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text))) // 是字的话简单地贴上就ok
     }
   }
 
@@ -683,22 +683,22 @@ export function createPatchFunction (backend) {
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
     if (isUndef(vnode)) {
-      if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
+      if (isDef(oldVnode)) invokeDestroyHook(oldVnode) // 根据新旧vnode是否存在来判断是否要调用destroy钩子
       return
     }
 
-    let isInitialPatch = false
+    let isInitialPatch = false // 是创建模式还是diff模式, 初始值diff模式
     const insertedVnodeQueue = []
 
-    if (isUndef(oldVnode)) {
+    if (isUndef(oldVnode)) { // 如果old vnode为空, 就是创建模式
       // empty mount (likely as component), create new root element
       isInitialPatch = true
-      createElm(vnode, insertedVnodeQueue, parentElm, refElm)
+      createElm(vnode, insertedVnodeQueue, parentElm, refElm) // 创建dom, patch剩下所有代码都是diff
     } else {
-      const isRealElement = isDef(oldVnode.nodeType)
+      const isRealElement = isDef(oldVnode.nodeType) // 是否是具象node
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
-        patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
+        patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly) // 跟node是一样的, 变化的是子节点
       } else {
         if (isRealElement) {
           // mounting to a real element

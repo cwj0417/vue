@@ -60,7 +60,7 @@ export function renderMixin (Vue: Class<Component>) {
 
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
-    const { render, _parentVnode } = vm.$options // todo: render和_parentVnode的由来
+    const { render, _parentVnode } = vm.$options // render是由template或el编译而来的, parentVnode是更新子component的
 
     // reset _rendered flag on slots for duplicate slot check
     if (process.env.NODE_ENV !== 'production') {
