@@ -11,7 +11,7 @@ import {
   getFirstComponentChild
 } from 'core/vdom/helpers/index'
 
-export const transitionProps = {
+export const transitionProps = { // transition接受的attr
   name: String,
   appear: Boolean,
   css: Boolean,
@@ -82,19 +82,19 @@ export default {
   abstract: true,
 
   render (h: Function) {
-    let children: any = this.$slots.default
-    if (!children) {
+    let children: any = this.$slots.default // 获取transition标签内的内容
+    if (!children) { // 如果标签内没东西当然什么都不渲染
       return
     }
 
-    // filter out text nodes (possible whitespaces)
+    // filter out text nodes (possible whitespaces) // 滤空...
     children = children.filter((c: VNode) => c.tag || isAsyncPlaceholder(c))
     /* istanbul ignore if */
     if (!children.length) {
       return
     }
 
-    // warn multiple elements
+    // warn multiple elements // 做子元素长度判断
     if (process.env.NODE_ENV !== 'production' && children.length > 1) {
       warn(
         '<transition> can only be used on a single element. Use ' +
@@ -105,7 +105,7 @@ export default {
 
     const mode: string = this.mode
 
-    // warn invalid mode
+    // warn invalid mode // 枚举属性做判断
     if (process.env.NODE_ENV !== 'production' &&
       mode && mode !== 'in-out' && mode !== 'out-in'
     ) {
@@ -115,29 +115,30 @@ export default {
       )
     }
 
-    const rawChild: VNode = children[0]
+    const rawChild: VNode = children[0] // 获得真正的transition里的元素 (之前做无子元素或多个子元素断言)
 
     // if this is a component root node and the component's
     // parent container node also has transition, skip.
-    if (hasParentTransition(this.$vnode)) {
+    if (hasParentTransition(this.$vnode)) { // (字面意思) 如果外层有transition, 这个transition就无效
       return rawChild
     }
 
     // apply transition data to child
     // use getRealChild() to ignore abstract components e.g. keep-alive
-    const child: ?VNode = getRealChild(rawChild)
+    const child: ?VNode = getRealChild(rawChild) // 再次对child内容进行滤空... 现在变量名叫child
     /* istanbul ignore if */
     if (!child) {
       return rawChild
     }
 
-    if (this._leaving) {
+    if (this._leaving) { // 待看, 不明白
       return placeholder(h, rawChild)
     }
 
     // ensure a key that is unique to the vnode type and to this transition
     // component instance. This key will be used to remove pending leaving nodes
     // during entering.
+    // 给transition的内容(child)一个唯一的key.
     const id: string = `__transition-${this._uid}-`
     child.key = child.key == null
       ? child.isComment
@@ -147,8 +148,8 @@ export default {
         ? (String(child.key).indexOf(id) === 0 ? child.key : id + child.key)
         : child.key
 
-    const data: Object = (child.data || (child.data = {})).transition = extractTransitionData(this)
-    const oldRawChild: VNode = this._vnode
+    const data: Object = (child.data || (child.data = {})).transition = extractTransitionData(this) // 获取transition数据并赋值给child.data和data.
+    const oldRawChild: VNode = this._vnode // 保存变化前的child
     const oldChild: VNode = getRealChild(oldRawChild)
 
     // mark v-show
@@ -158,9 +159,9 @@ export default {
     }
 
     if (
-      oldChild &&
-      oldChild.data &&
-      !isSameChild(child, oldChild) &&
+      oldChild && // 滤空
+      oldChild.data && // 滤空
+      !isSameChild(child, oldChild) && // 新旧判断
       !isAsyncPlaceholder(oldChild) &&
       // #6687 component root is a comment node
       !(oldChild.componentInstance && oldChild.componentInstance._vnode.isComment)
