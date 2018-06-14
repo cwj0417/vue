@@ -71,7 +71,7 @@ export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
 
-  const { modules, nodeOps } = backend
+  const { modules, nodeOps } = backend // nodeOps: 平台相关元素操作, web就是dom操作. modules: 平台相关模块
 
   for (i = 0; i < hooks.length; ++i) { // 把modules的各个生命周期执行的方法按照"cbs.hookName = [function (){}, function () {}]"的格式推到cbs里.
     cbs[hooks[i]] = []
@@ -131,6 +131,7 @@ export function createPatchFunction (backend) {
     ownerArray,
     index
   ) {
+    // 初始化页面createElm的时候: vnode: VNode. insertedVnodeQueue: [], parent和ref不明, 可能没有
     if (isDef(vnode.elm) && isDef(ownerArray)) {
       // This vnode was used in a previous render!
       // now it's used as a new node, overwriting its elm would cause

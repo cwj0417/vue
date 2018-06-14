@@ -193,7 +193,7 @@ export function mountComponent (
     }
   } else {
     updateComponent = () => {
-      vm._update(vm._render(), hydrating)
+      vm._update(vm._render(), hydrating) // vm.render(): 返回当前所在vue实例的vnode, vm.update: 根据vnode来更新视图.
     }
   }
 

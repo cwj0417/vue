@@ -80,7 +80,7 @@ export function renderMixin (Vue: Class<Component>) {
     // render self
     let vnode
     try {
-      vnode = render.call(vm._renderProxy, vm.$createElement)
+      vnode = render.call(vm._renderProxy, vm.$createElement) // => render(h) { // this:vm, h: vm.$createElement}
     } catch (e) {
       // catch其实不需要看了, 都是做异常处理, _vnode是在vm._update的时候保存的, 也就是上次的状态或是null(init的时候给的)
       handleError(e, vm, `render`)

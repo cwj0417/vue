@@ -134,13 +134,14 @@ export function createComponent (
 
   // async component
   let asyncFactory
-  if (isUndef(Ctor.cid)) {
+  if (isUndef(Ctor.cid)) { // cid是在extend的时候添加的, 意义是child id, 也就是这个这个component是被extend出来了.
     asyncFactory = Ctor
     Ctor = resolveAsyncComponent(asyncFactory, baseCtor, context)
     if (Ctor === undefined) {
       // return a placeholder node for async component, which is rendered
       // as a comment node but preserves all the raw information for the node.
       // the information will be used for async server-rendering and hydration.
+      // 根据这句话的解释, 这段代码先不看了. 和主线关系不大.
       return createAsyncPlaceholder(
         asyncFactory,
         data,
@@ -155,9 +156,10 @@ export function createComponent (
 
   // resolve constructor options in case global mixins are applied after
   // component constructor creation
-  resolveConstructorOptions(Ctor)
+  resolveConstructorOptions(Ctor) // 这个方法在init的时候也调过, 这里是防止代码顺序的问题导致global mixins没有被加载.
 
   // transform component v-model data into props & events
+  // 处理v-model的语法糖, transformModel这个方法可以看到v-model的具体做法.(默认是value和input, 但是可以设置.)
   if (isDef(data.model)) {
     transformModel(Ctor.options, data)
   }
@@ -175,6 +177,7 @@ export function createComponent (
   const listeners = data.on
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
+  // 所以在一些没有click事件的组件里用.native修饰符就可以绑定事件.
   data.on = data.nativeOn
 
   if (isTrue(Ctor.options.abstract)) {
@@ -192,7 +195,7 @@ export function createComponent (
   // install component management hooks onto the placeholder node
   installComponentHooks(data)
 
-  // return a placeholder vnode
+  // return a placeholder vnode // createComponent对参数进行一些处理以后的结果也就是返回一个vnode.
   const name = Ctor.options.name || tag
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
