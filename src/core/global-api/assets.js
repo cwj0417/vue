@@ -26,7 +26,7 @@ export function initAssetRegisters (Vue: GlobalAPI) {
         if (type === 'directive' && typeof definition === 'function') {
           definition = { bind: definition, update: definition }
         }
-        this.options[type + 's'][id] = definition
+        this.options[type + 's'][id] = definition // 核心: 注册的结果就是 Vue.directives.model = {inserted: function () {}...}
         return definition
       }
     }

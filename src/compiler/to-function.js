@@ -56,7 +56,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // compile
-    const compiled = compile(template, options)
+    const compiled = compile(template, options) // 进行一些滤空处理后执行了compile(). 其实就是执行了parse(). (compile => baseCompile => parse)
 
     // check compilation errors/tips
     if (process.env.NODE_ENV !== 'production') {

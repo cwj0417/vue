@@ -46,6 +46,9 @@ export function createCompilerCreator (baseCompile: Function): Function {
       compiled.tips = tips
       return compiled
     }
+    /*
+    compile(): 把basepotion和参数option merge, 再调用baseCompile来编译模板.
+     */
 
     return {
       compile,

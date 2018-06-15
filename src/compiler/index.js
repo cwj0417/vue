@@ -23,3 +23,10 @@ export const createCompiler = createCompilerCreator(function baseCompile (
     staticRenderFns: code.staticRenderFns
   }
 })
+
+/*
+baseCompile: 参数template, options
+通过 parse()方法生成ast
+通过 generate()方法生成code.
+返回ast和code
+ */
