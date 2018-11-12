@@ -64,7 +64,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     if (!prevVnode) { // 初次加载, 只有_update方法更新vm._vnode, 初始化是null
       // initial render
       vm.$el = vm.__patch__( // patch创建新dom
-        vm.$el, vnode, hydrating, false /* removeOnly */,
+        vm.$el, vnode, hydrating, false /* removeOnly */, // vnode是._render()根据render函数产生的  ,  hydrating是$mount方法的第二个参数, 默认是false
         vm.$options._parentElm,
         vm.$options._refElm
       )

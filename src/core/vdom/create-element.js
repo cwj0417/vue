@@ -98,7 +98,7 @@ export function _createElement (
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag) // 如果有旧的取旧的, 没得就获得, 用来判断svg或者math
     if (config.isReservedTag(tag)) { // case: 是平台相关的标签(div, span)
       // platform built-in elements
-      vnode = new VNode(
+      vnode = new VNode( //
         config.parsePlatformTagName(tag), data, children, // 这个config.parsePlatformTagName的具体内容是: _ => _ 是什么就返回什么.
         undefined, undefined, context
       )

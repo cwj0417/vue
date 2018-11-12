@@ -123,7 +123,9 @@ export function createComponent (
     Ctor = baseCtor.extend(Ctor)
   }
 
-  // if at this stage it's not a constructor or an async component factory,
+  // 至此: Ctor是子Vue实例, baseCtor是根Vue实例
+
+  // if at this stage it's not a constructor or an async component factory, // 滤错
   // reject.
   if (typeof Ctor !== 'function') {
     if (process.env.NODE_ENV !== 'production') {

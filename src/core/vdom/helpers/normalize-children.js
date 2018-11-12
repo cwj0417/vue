@@ -29,7 +29,7 @@ export function simpleNormalizeChildren (children: any) {
 // with hand-written render functions / JSX. In such cases a full normalization
 // is needed to cater to all possible types of children values.
 export function normalizeChildren (children: any): ?Array<VNode> {
-  return isPrimitive(children)
+  return isPrimitive(children) // 判断children的类型是否string, number, symbol, boolean
     ? [createTextVNode(children)]
     : Array.isArray(children)
       ? normalizeArrayChildren(children)
@@ -51,6 +51,7 @@ function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNo
     //  nested
     if (Array.isArray(c)) {
       if (c.length > 0) {
+        // 这里的效果其实也是flatten
         c = normalizeArrayChildren(c, `${nestedIndex || ''}_${i}`)
         // merge adjacent text nodes
         if (isTextNode(c[0]) && isTextNode(last)) {
@@ -59,7 +60,7 @@ function normalizeArrayChildren (children: any, nestedIndex?: string): Array<VNo
         }
         res.push.apply(res, c)
       }
-    } else if (isPrimitive(c)) {
+    } else if (isPrimitive(c)) { // 这个分支和simple normalize 一样
       if (isTextNode(last)) {
         // merge adjacent text nodes
         // this is necessary for SSR hydration because text nodes are
