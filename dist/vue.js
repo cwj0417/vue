@@ -1,6 +1,6 @@
 /*!
  * Vue.js v2.5.16
- * (c) 2014-2019 Evan You
+ * (c) 2014-2020 Evan You
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -451,10 +451,7 @@ var config = ({
 /**
  * Check if a string starts with $ or _
  */
-function isReserved (str) {
-  var c = (str + '').charCodeAt(0);
-  return c === 0x24 || c === 0x5F
-}
+
 
 /**
  * Define a property.
@@ -876,6 +873,7 @@ function toggleObserving (value) {
 var Observer = function Observer (value) {
   this.value = value; // 保存值
   this.dep = new Dep(); // dep对象
+  console.log('constructor', this.dep, value);
   this.vmCount = 0;
   def(value, '__ob__', this);// 自己的副本, 放到__ob__属性下, 作为单例依据的缓存
   if (Array.isArray(value)) {// 判断是否为数组, 如果是数组的话劫持一些数组的方法, 在调用这些方法的时候进行通知.
@@ -993,7 +991,9 @@ function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       var value = getter ? getter.call(obj) : val; // 如果本身有getter, 先调用
+      console.log('getter', obj, key, value);
       if (Dep.target) {  // 如果有dep.target, 进行一些处理, 最后返回value, if里的代码我们之后去dep的代码中研究
+        console.log('dep id:', dep.id);
         dep.depend();
         if (childOb) {
           childOb.dep.depend();
@@ -1020,6 +1020,7 @@ function defineReactive (
         val = newVal; // 因为传入参数的时候其实是'obj[keys[i]]', 所以就等于是'obj[key] = newVal'了
       }
       childOb = !shallow && observe(newVal); // 重新建立子监察
+      console.log('setter', dep);
       dep.notify(); // 通知, 可以说是劫持的核心步骤
     }
   });
@@ -1885,8 +1886,6 @@ var measure;
 
 /* not type checking this file because flow doesn't play well with Proxy */
 
-var initProxy;
-
 {
   var allowedGlobals = makeMap(
     'Infinity,undefined,NaN,isFinite,isNaN,' +
@@ -1894,17 +1893,6 @@ var initProxy;
     'Math,Number,Date,Array,Object,Boolean,String,RegExp,Map,Set,JSON,Intl,' +
     'require' // for Webpack/Browserify
   );
-
-  var warnNonPresent = function (target, key) {
-    warn(
-      "Property or method \"" + key + "\" is not defined on the instance but " +
-      'referenced during render. Make sure that this property is reactive, ' +
-      'either in the data option, or for class-based components, by ' +
-      'initializing the property. ' +
-      'See: https://vuejs.org/v2/guide/reactivity.html#Declaring-Reactive-Properties.',
-      target
-    );
-  };
 
   var hasProxy =
     typeof Proxy !== 'undefined' && isNative(Proxy);
@@ -1924,38 +1912,7 @@ var initProxy;
     });
   }
 
-  var hasHandler = {
-    has: function has (target, key) {
-      var has = key in target;
-      var isAllowed = allowedGlobals(key) || key.charAt(0) === '_';
-      if (!has && !isAllowed) {
-        warnNonPresent(target, key);
-      }
-      return has || !isAllowed
-    }
-  };
-
-  var getHandler = {
-    get: function get (target, key) {
-      if (typeof key === 'string' && !(key in target)) {
-        warnNonPresent(target, key);
-      }
-      return target[key]
-    }
-  };
-
-  initProxy = function initProxy (vm) {
-    if (hasProxy) {
-      // determine which proxy handler to use
-      var options = vm.$options;
-      var handlers = options.render && options.render._withStripped
-        ? getHandler
-        : hasHandler;
-      vm._renderProxy = new Proxy(vm, handlers);
-    } else {
-      vm._renderProxy = vm;
-    }
-  };
+  
 }
 
 /*  */
@@ -2400,7 +2357,7 @@ function initEvents (vm) {
   vm._events = Object.create(null);
   vm._hasHookEvent = false;
   // init parent attached events
-  var listeners = vm.$options._parentListeners;
+  var listeners = vm.$options._parentListeners; // 这个要在 initInternalComponent 以后才有的. 和component有关, 以后再看
   if (listeners) {
     updateComponentListeners(vm, listeners);
   }
@@ -2601,7 +2558,7 @@ function resolveScopedSlots (
 /*  */
 
 var activeInstance = null;
-var isUpdatingChildComponent = false;
+
 
 function initLifecycle (vm) {
   var options = vm.$options;
@@ -2730,7 +2687,8 @@ function mountComponent (
   hydrating
 ) {
   vm.$el = el; // 放一份el到自己的属性里
-  if (!vm.$options.render) { // render应该经过处理了, 因为我们经常都是用template或者vue文件
+  if (!vm.$options.render) {  // 走到这里还没有render是错误的, 报错.
+    // render应该经过处理了, 因为我们经常都是用template或者vue文件
     // 判断是否存在render函数, 如果没有就把render函数写成空VNode来避免红错, 并报出黄错
     vm.$options.render = createEmptyVNode;
     {
@@ -2755,35 +2713,17 @@ function mountComponent (
 
   var updateComponent;
   /* istanbul ignore if */
-  if ("development" !== 'production' && config.performance && mark) {
-    // 不看这里的代码了, 直接看else里的, 行为是一样的
-    updateComponent = function () {
-      var name = vm._name;
-      var id = vm._uid;
-      var startTag = "vue-perf-start:" + id;
-      var endTag = "vue-perf-end:" + id;
 
-      mark(startTag);
-      var vnode = vm._render();
-      mark(endTag);
-      measure(("vue " + name + " render"), startTag, endTag);
-
-      mark(startTag);
-      vm._update(vnode, hydrating);
-      mark(endTag);
-      measure(("vue " + name + " patch"), startTag, endTag);
-    };
-  } else {
     updateComponent = function () {
+      // console.log('update mount');
       vm._update(vm._render(), hydrating); // vm.render(): 返回当前所在vue实例的vnode, vm.update: 根据vnode来更新视图.
     };
-  }
 
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
   // 注册一个Watcher
-  new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */);
+  console.log('render watcher:', new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */));
   hydrating = false;
 
   // manually mounted instance, call mounted on self
@@ -2803,7 +2743,7 @@ function updateChildComponent (
   renderChildren
 ) {
   {
-    isUpdatingChildComponent = true;
+    
   }
 
   // determine whether component has slot children
@@ -2857,7 +2797,7 @@ function updateChildComponent (
   }
 
   {
-    isUpdatingChildComponent = false;
+    
   }
 }
 
@@ -3126,6 +3066,7 @@ var Watcher = function Watcher (
  * Evaluate the getter, and re-collect dependencies.
  */
 Watcher.prototype.get = function get () {
+  console.log('----- start watch');
   pushTarget(this);
   // 进入队列, 把当前watcher设置为Dep.target
   // 这样下面调用getter的时候出发的dep.append() (最后调用Dep.target.addDep()) 就会调用这个watcher的addDep.
@@ -3151,6 +3092,7 @@ Watcher.prototype.get = function get () {
     if (this.deep) {
       traverse(value);
     }
+    console.log('end watch ------');
     popTarget(); // 移除队列
     this.cleanupDeps(); // 清理依赖(addDep加到newDep数组, 这步做整理动作)
   }
@@ -3199,6 +3141,7 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
  * Will be called when a dependency changes.
  */
 Watcher.prototype.update = function update () {
+  // console.log('update', this)
   /* istanbul ignore else */
   if (this.lazy) {
     this.dirty = true;
@@ -3215,7 +3158,9 @@ Watcher.prototype.update = function update () {
  */
 Watcher.prototype.run = function run () {
   if (this.active) {
+    // console.log('run, run get')
     var value = this.get();
+    // console.log(value, isObject)
     if (
       value !== this.value ||
       // Deep watchers and watchers on Object/Arrays should fire even
@@ -3333,40 +3278,19 @@ function initProps (vm, propsOptions) {
   if (!isRoot) {
     toggleObserving(false);
   }
-  var loop = function ( key ) {
+  for (var key in propsOptions) {
     keys.push(key);
     var value = validateProp(key, propsOptions, propsData, vm);
-    /* istanbul ignore else */
-    {
-      var hyphenatedKey = hyphenate(key);
-      if (isReservedAttribute(hyphenatedKey) ||
-          config.isReservedAttr(hyphenatedKey)) {
-        warn(
-          ("\"" + hyphenatedKey + "\" is a reserved attribute and cannot be used as component prop."),
-          vm
-        );
-      }
-      defineReactive(props, key, value, function () {
-        if (vm.$parent && !isUpdatingChildComponent) {
-          warn(
-            "Avoid mutating a prop directly since the value will be " +
-            "overwritten whenever the parent component re-renders. " +
-            "Instead, use a data or computed property based on the prop's " +
-            "value. Prop being mutated: \"" + key + "\"",
-            vm
-          );
-        }
-      });
-    }
+
+    defineReactive(props, key, value);
+
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
     if (!(key in vm)) {
       proxy(vm, "_props", key);
     }
-  };
-
-  for (var key in propsOptions) loop( key );
+  }
   toggleObserving(true);
 }
 
@@ -3377,36 +3301,13 @@ function initData (vm) {
     : data || {};
   if (!isPlainObject(data)) { // 过滤乱搞, data只接受对象, 如果乱搞会报警并且把data认为是空对象
     data = {};
-    "development" !== 'production' && warn(
-      'data functions should return an object:\n' +
-      'https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function',
-      vm
-    );
   }
   // proxy data on instance
   var keys = Object.keys(data);
-  var props = vm.$options.props;
-  var methods = vm.$options.methods;
   var i = keys.length;
   while (i--) { // 遍历data
     var key = keys[i];
-    {
-      if (methods && hasOwn(methods, key)) { // 判断是否和methods重名
-        warn(
-          ("Method \"" + key + "\" has already been defined as a data property."),
-          vm
-        );
-      }
-    }
-    if (props && hasOwn(props, key)) { // 判断是否和props重名
-      "development" !== 'production' && warn(
-        "The data property \"" + key + "\" is already declared as a prop. " +
-        "Use prop default value instead.",
-        vm
-      );
-    } else if (!isReserved(key)) { // 判断key是否以_或$开头
-      proxy(vm, "_data", key); // 代理data
-    }
+    proxy(vm, "_data", key);
   }
   // observe data
   observe(data, true /* asRootData */);
@@ -3525,29 +3426,7 @@ function createComputedGetter (key) {
 }
 
 function initMethods (vm, methods) {
-  var props = vm.$options.props;
   for (var key in methods) {
-    {
-      if (methods[key] == null) {
-        warn(
-          "Method \"" + key + "\" has an undefined value in the component definition. " +
-          "Did you reference the function correctly?",
-          vm
-        );
-      }
-      if (props && hasOwn(props, key)) {
-        warn(
-          ("Method \"" + key + "\" has already been defined as a prop."),
-          vm
-        );
-      }
-      if ((key in vm) && isReserved(key)) {
-        warn(
-          "Method \"" + key + "\" conflicts with an existing Vue instance method. " +
-          "Avoid defining component methods that start with _ or $."
-        );
-      }
-    }
     vm[key] = methods[key] == null ? noop : bind(methods[key], vm);
   }
 }
@@ -3589,18 +3468,6 @@ function stateMixin (Vue) {
   dataDef.get = function () { return this._data };
   var propsDef = {};
   propsDef.get = function () { return this._props };
-  {
-    dataDef.set = function (newData) {
-      warn(
-        'Avoid replacing instance root $data. ' +
-        'Use nested data properties instead.',
-        this
-      );
-    };
-    propsDef.set = function () {
-      warn("$props is readonly.", this);
-    };
-  }
   Object.defineProperty(Vue.prototype, '$data', dataDef);
   Object.defineProperty(Vue.prototype, '$props', propsDef);
 
@@ -4496,15 +4363,9 @@ function initRender (vm) {
   // they need to be reactive so that HOCs using them are always updated
   var parentData = parentVnode && parentVnode.data;
 
-  /* istanbul ignore else */
-  {
-    defineReactive(vm, '$attrs', parentData && parentData.attrs || emptyObject, function () {
-      !isUpdatingChildComponent && warn("$attrs is readonly.", vm);
-    }, true);
-    defineReactive(vm, '$listeners', options._parentListeners || emptyObject, function () {
-      !isUpdatingChildComponent && warn("$listeners is readonly.", vm);
-    }, true);
-  }
+
+  defineReactive(vm, '$attrs', parentData && parentData.attrs || emptyObject, null, true);
+  defineReactive(vm, '$listeners', options._parentListeners || emptyObject, null, true);
 }
 
 function renderMixin (Vue) {
@@ -4587,15 +4448,6 @@ function initMixin (Vue) {
     // a uid
     vm._uid = uid$3++;
 
-    var startTag, endTag;
-    /* istanbul ignore if */
-    // 如果配置里有'performance'就打印性能
-    if ("development" !== 'production' && config.performance && mark) {
-      startTag = "vue-perf-start:" + (vm._uid);
-      endTag = "vue-perf-end:" + (vm._uid);
-      mark(startTag);
-    }
-
     // a flag to avoid this being observed
     vm._isVue = true;
     // merge options
@@ -4606,15 +4458,13 @@ function initMixin (Vue) {
       initInternalComponent(vm, options);
     } else {
       vm.$options = mergeOptions(
-        resolveConstructorOptions(vm.constructor),
+        resolveConstructorOptions(vm.constructor), // 平台相关的mixins
         options || {},
         vm
       );
     }
-    /* istanbul ignore else */
-    {
-      initProxy(vm);
-    }
+    vm._renderProxy = vm;
+
     // expose real self
     vm._self = vm;
     // 下面这串是启动过程
@@ -4622,18 +4472,17 @@ function initMixin (Vue) {
     initLifecycle(vm);
     initEvents(vm);
     initRender(vm);
+
     callHook(vm, 'beforeCreate');
-    initInjections(vm); // resolve injections before data/props
+
+    initInjections(vm); // resolve injections before data/props // 不看, 不会用..
+
     initState(vm);
-    initProvide(vm); // resolve provide after data/props
+
+    initProvide(vm); // resolve provide after data/props // 先不看, 都不会用..
+
     callHook(vm, 'created');
 
-    /* istanbul ignore if */
-    if ("development" !== 'production' && config.performance && mark) {
-      vm._name = formatComponentName(vm, false);
-      mark(endTag);
-      measure(("vue " + (vm._name) + " init"), startTag, endTag);
-    }
     // 最后如果有el就调用$mount(el)
 
     if (vm.$options.el) {
@@ -8520,7 +8369,7 @@ Vue.config.getTagNamespace = getTagNamespace;
 Vue.config.isUnknownElement = isUnknownElement;
 
 // install platform runtime directives & components
-extend(Vue.options.directives, platformDirectives);
+extend(Vue.options.directives, platformDirectives); // v-show, v-model
 extend(Vue.options.components, platformComponents); // [研究transition] transition入口, 加载方式: extend, transition就是一个自带的自定义components
 
 // install platform patch function

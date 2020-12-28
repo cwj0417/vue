@@ -27,7 +27,7 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
 // install platform runtime directives & components
-extend(Vue.options.directives, platformDirectives)
+extend(Vue.options.directives, platformDirectives) // v-show, v-model
 extend(Vue.options.components, platformComponents) // [研究transition] transition入口, 加载方式: extend, transition就是一个自带的自定义components
 
 // install platform patch function

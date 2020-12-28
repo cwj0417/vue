@@ -42,6 +42,7 @@ export class Observer {
   constructor (value: any) {
     this.value = value // 保存值
     this.dep = new Dep() // dep对象
+    console.log('constructor', this.dep, value)
     this.vmCount = 0
     def(value, '__ob__', this)  // 自己的副本, 放到__ob__属性下, 作为单例依据的缓存
     if (Array.isArray(value)) {  // 判断是否为数组, 如果是数组的话劫持一些数组的方法, 在调用这些方法的时候进行通知.
@@ -160,7 +161,9 @@ export function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val // 如果本身有getter, 先调用
+      console.log('getter', obj, key, value)
       if (Dep.target) {  // 如果有dep.target, 进行一些处理, 最后返回value, if里的代码我们之后去dep的代码中研究
+        console.log('dep id:', dep.id)
         dep.depend()
         if (childOb) {
           childOb.dep.depend()
@@ -187,6 +190,7 @@ export function defineReactive (
         val = newVal // 因为传入参数的时候其实是'obj[keys[i]]', 所以就等于是'obj[key] = newVal'了
       }
       childOb = !shallow && observe(newVal) // 重新建立子监察
+      console.log('setter', dep)
       dep.notify() // 通知, 可以说是劫持的核心步骤
     }
   })

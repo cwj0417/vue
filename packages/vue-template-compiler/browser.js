@@ -1069,6 +1069,7 @@ Dep.prototype.notify = function notify () {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 这是一个队列, 因为不允许有多个watcher的get方法同时调用
 Dep.target = null;
 
 /*  */
@@ -1155,8 +1156,8 @@ methodsToPatch.forEach(function (method) {
     var args = [], len = arguments.length;
     while ( len-- ) args[ len ] = arguments[ len ];
 
-    var result = original.apply(this, args);
-    var ob = this.__ob__;
+    var result = original.apply(this, args); // 调用原生的数组方法
+    var ob = this.__ob__; // 获取observe对象
     var inserted;
     switch (method) {
       case 'push':
@@ -1167,7 +1168,7 @@ methodsToPatch.forEach(function (method) {
         inserted = args.slice(2);
         break
     }
-    if (inserted) { ob.observeArray(inserted); }
+    if (inserted) { ob.observeArray(inserted); }  // 继续递归
     // notify change
     ob.dep.notify();
     return result
@@ -1193,18 +1194,18 @@ var shouldObserve = true;
  * collect dependencies and dispatch updates.
  */
 var Observer = function Observer (value) {
-  this.value = value;
-  this.dep = new Dep();
+  this.value = value; // 保存值
+  this.dep = new Dep(); // dep对象
   this.vmCount = 0;
-  def(value, '__ob__', this);
-  if (Array.isArray(value)) {
+  def(value, '__ob__', this);// 自己的副本, 放到__ob__属性下, 作为单例依据的缓存
+  if (Array.isArray(value)) {// 判断是否为数组, 如果是数组的话劫持一些数组的方法, 在调用这些方法的时候进行通知.
     var augment = hasProto
       ? protoAugment
       : copyAugment;
     augment(value, arrayMethods, arrayKeys);
-    this.observeArray(value);
+    this.observeArray(value);// 遍历数组, 继续监察数组的每个元素
   } else {
-    this.walk(value);
+    this.walk(value);// 直到不再是数组(是对象了), 遍历对象, 劫持每个对象来发出通知
   }
 };
 
@@ -1216,7 +1217,7 @@ var Observer = function Observer (value) {
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
   for (var i = 0; i < keys.length; i++) {
-    defineReactive(obj, keys[i]);
+    defineReactive(obj, keys[i]); // 用'obj[keys[i]]'这种方式是为了在函数中直接给这个赋值就行了
   }
 };
 
@@ -1259,13 +1260,13 @@ function copyAugment (target, src, keys) {
  * or the existing observer if the value already has one.
  */
 function observe (value, asRootData) {
-  if (!isObject(value) || value instanceof VNode) {
+  if (!isObject(value) || value instanceof VNode) {  // 只能是监察对象, 过滤非法参数
     return
   }
   var ob;
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
-    ob = value.__ob__;
-  } else if (
+    ob = value.__ob__;  // 如果已被监察过, 返回存在的监察对象
+  } else if (  // 符合下面条件就新建一个监察对象, 如果不符合就返回undefined
     shouldObserve &&
     !isServerRendering() &&
     (Array.isArray(value) || isPlainObject(value)) &&
@@ -1284,16 +1285,18 @@ function observe (value, asRootData) {
  * Define a reactive property on an Object.
  */
 function defineReactive (
-  obj,
-  key,
-  val,
+  // 这个方法是劫持对象key的动作
+  // 这里还是举例: 对象为 {a: 'value a', b: 'value b'}, 当前遍历到a
+  obj, // {a: 'value a', b: 'value b'}
+  key, // a
+  val, // value a
   customSetter,
   shallow
 ) {
   var dep = new Dep();
 
   var property = Object.getOwnPropertyDescriptor(obj, key);
-  if (property && property.configurable === false) {
+  if (property && property.configurable === false) { // 判断当前key的操作权限
     return
   }
 
@@ -1304,13 +1307,13 @@ function defineReactive (
   }
   var setter = property && property.set;
 
-  var childOb = !shallow && observe(val);
+  var childOb = !shallow && observe(val); // childOb是val的监察对象(就是new Observe(val), 也就是递归调用)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
-      var value = getter ? getter.call(obj) : val;
-      if (Dep.target) {
+      var value = getter ? getter.call(obj) : val; // 如果本身有getter, 先调用
+      if (Dep.target) {  // 如果有dep.target, 进行一些处理, 最后返回value, if里的代码我们之后去dep的代码中研究
         dep.depend();
         if (childOb) {
           childOb.dep.depend();
@@ -1322,22 +1325,22 @@ function defineReactive (
       return value
     },
     set: function reactiveSetter (newVal) {
-      var value = getter ? getter.call(obj) : val;
+      var value = getter ? getter.call(obj) : val; // 如果本身有getter, 先调用
       /* eslint-disable no-self-compare */
-      if (newVal === value || (newVal !== newVal && value !== value)) {
+      if (newVal === value || (newVal !== newVal && value !== value)) { // 如果值不变就不去做通知了, (或是某个值为Nan?)
         return
       }
       /* eslint-enable no-self-compare */
       if ("development" !== 'production' && customSetter) {
-        customSetter();
+        customSetter(); // 根据"生产环境不执行"这个行为来看, 这个方法可能作用是log, 可能是保留方法, 还没地方用?
       }
-      if (setter) {
+      if (setter) { // 如果本身有setter, 先调用, 没的话就直接赋值
         setter.call(obj, newVal);
       } else {
-        val = newVal;
+        val = newVal; // 因为传入参数的时候其实是'obj[keys[i]]', 所以就等于是'obj[key] = newVal'了
       }
-      childOb = !shallow && observe(newVal);
-      dep.notify();
+      childOb = !shallow && observe(newVal); // 重新建立子监察
+      dep.notify(); // 通知, 可以说是劫持的核心步骤
     }
   });
 }
@@ -4554,7 +4557,7 @@ function createCompileToFunctionFn (compile) {
     }
 
     // compile
-    var compiled = compile(template, options);
+    var compiled = compile(template, options); // 进行一些滤空处理后执行了compile(). 其实就是执行了parse(). (compile => baseCompile => parse)
 
     // check compilation errors/tips
     {
@@ -4645,6 +4648,9 @@ function createCompilerCreator (baseCompile) {
       compiled.tips = tips;
       return compiled
     }
+    /*
+    compile(): 把basepotion和参数option merge, 再调用baseCompile来编译模板.
+     */
 
     return {
       compile: compile,
@@ -4673,6 +4679,13 @@ var createCompiler = createCompilerCreator(function baseCompile (
     staticRenderFns: code.staticRenderFns
   }
 });
+
+/*
+baseCompile: 参数template, options
+通过 parse()方法生成ast
+通过 generate()方法生成code.
+返回ast和code
+ */
 
 /*  */
 

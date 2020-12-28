@@ -935,15 +935,18 @@ Dep.prototype.notify = function notify () {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 这是一个队列, 因为不允许有多个watcher的get方法同时调用
 Dep.target = null;
 var targetStack = [];
 
 function pushTarget (_target) {
+  // 设置target, 把旧的放进stack
   if (Dep.target) { targetStack.push(Dep.target); }
   Dep.target = _target;
 }
 
 function popTarget () {
+  // 从stack拿一个作为当前的
   Dep.target = targetStack.pop();
 }
 
@@ -975,8 +978,8 @@ methodsToPatch.forEach(function (method) {
     var args = [], len = arguments.length;
     while ( len-- ) args[ len ] = arguments[ len ];
 
-    var result = original.apply(this, args);
-    var ob = this.__ob__;
+    var result = original.apply(this, args); // 调用原生的数组方法
+    var ob = this.__ob__; // 获取observe对象
     var inserted;
     switch (method) {
       case 'push':
@@ -987,7 +990,7 @@ methodsToPatch.forEach(function (method) {
         inserted = args.slice(2);
         break
     }
-    if (inserted) { ob.observeArray(inserted); }
+    if (inserted) { ob.observeArray(inserted); }  // 继续递归
     // notify change
     ob.dep.notify();
     return result
@@ -1015,18 +1018,18 @@ function toggleObserving (value) {
  * collect dependencies and dispatch updates.
  */
 var Observer = function Observer (value) {
-  this.value = value;
-  this.dep = new Dep();
+  this.value = value; // 保存值
+  this.dep = new Dep(); // dep对象
   this.vmCount = 0;
-  def(value, '__ob__', this);
-  if (Array.isArray(value)) {
+  def(value, '__ob__', this);// 自己的副本, 放到__ob__属性下, 作为单例依据的缓存
+  if (Array.isArray(value)) {// 判断是否为数组, 如果是数组的话劫持一些数组的方法, 在调用这些方法的时候进行通知.
     var augment = hasProto
       ? protoAugment
       : copyAugment;
     augment(value, arrayMethods, arrayKeys);
-    this.observeArray(value);
+    this.observeArray(value);// 遍历数组, 继续监察数组的每个元素
   } else {
-    this.walk(value);
+    this.walk(value);// 直到不再是数组(是对象了), 遍历对象, 劫持每个对象来发出通知
   }
 };
 
@@ -1038,7 +1041,7 @@ var Observer = function Observer (value) {
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
   for (var i = 0; i < keys.length; i++) {
-    defineReactive(obj, keys[i]);
+    defineReactive(obj, keys[i]); // 用'obj[keys[i]]'这种方式是为了在函数中直接给这个赋值就行了
   }
 };
 
@@ -1081,13 +1084,13 @@ function copyAugment (target, src, keys) {
  * or the existing observer if the value already has one.
  */
 function observe (value, asRootData) {
-  if (!isObject(value) || value instanceof VNode) {
+  if (!isObject(value) || value instanceof VNode) {  // 只能是监察对象, 过滤非法参数
     return
   }
   var ob;
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
-    ob = value.__ob__;
-  } else if (
+    ob = value.__ob__;  // 如果已被监察过, 返回存在的监察对象
+  } else if (  // 符合下面条件就新建一个监察对象, 如果不符合就返回undefined
     shouldObserve &&
     !isServerRendering() &&
     (Array.isArray(value) || isPlainObject(value)) &&
@@ -1106,16 +1109,18 @@ function observe (value, asRootData) {
  * Define a reactive property on an Object.
  */
 function defineReactive (
-  obj,
-  key,
-  val,
+  // 这个方法是劫持对象key的动作
+  // 这里还是举例: 对象为 {a: 'value a', b: 'value b'}, 当前遍历到a
+  obj, // {a: 'value a', b: 'value b'}
+  key, // a
+  val, // value a
   customSetter,
   shallow
 ) {
   var dep = new Dep();
 
   var property = Object.getOwnPropertyDescriptor(obj, key);
-  if (property && property.configurable === false) {
+  if (property && property.configurable === false) { // 判断当前key的操作权限
     return
   }
 
@@ -1126,13 +1131,13 @@ function defineReactive (
   }
   var setter = property && property.set;
 
-  var childOb = !shallow && observe(val);
+  var childOb = !shallow && observe(val); // childOb是val的监察对象(就是new Observe(val), 也就是递归调用)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
-      var value = getter ? getter.call(obj) : val;
-      if (Dep.target) {
+      var value = getter ? getter.call(obj) : val; // 如果本身有getter, 先调用
+      if (Dep.target) {  // 如果有dep.target, 进行一些处理, 最后返回value, if里的代码我们之后去dep的代码中研究
         dep.depend();
         if (childOb) {
           childOb.dep.depend();
@@ -1144,22 +1149,22 @@ function defineReactive (
       return value
     },
     set: function reactiveSetter (newVal) {
-      var value = getter ? getter.call(obj) : val;
+      var value = getter ? getter.call(obj) : val; // 如果本身有getter, 先调用
       /* eslint-disable no-self-compare */
-      if (newVal === value || (newVal !== newVal && value !== value)) {
+      if (newVal === value || (newVal !== newVal && value !== value)) { // 如果值不变就不去做通知了, (或是某个值为Nan?)
         return
       }
       /* eslint-enable no-self-compare */
       if (process.env.NODE_ENV !== 'production' && customSetter) {
-        customSetter();
+        customSetter(); // 根据"生产环境不执行"这个行为来看, 这个方法可能作用是log, 可能是保留方法, 还没地方用?
       }
-      if (setter) {
+      if (setter) { // 如果本身有setter, 先调用, 没的话就直接赋值
         setter.call(obj, newVal);
       } else {
-        val = newVal;
+        val = newVal; // 因为传入参数的时候其实是'obj[keys[i]]', 所以就等于是'obj[key] = newVal'了
       }
-      childOb = !shallow && observe(newVal);
-      dep.notify();
+      childOb = !shallow && observe(newVal); // 重新建立子监察
+      dep.notify(); // 通知, 可以说是劫持的核心步骤
     }
   });
 }
@@ -5528,7 +5533,7 @@ function createCompileToFunctionFn (compile) {
     }
 
     // compile
-    var compiled = compile(template, options);
+    var compiled = compile(template, options); // 进行一些滤空处理后执行了compile(). 其实就是执行了parse(). (compile => baseCompile => parse)
 
     // check compilation errors/tips
     if (process.env.NODE_ENV !== 'production') {
@@ -5619,6 +5624,9 @@ function createCompilerCreator (baseCompile) {
       compiled.tips = tips;
       return compiled
     }
+    /*
+    compile(): 把basepotion和参数option merge, 再调用baseCompile来编译模板.
+     */
 
     return {
       compile: compile,
@@ -5676,7 +5684,7 @@ function simpleNormalizeChildren (children) {
 // with hand-written render functions / JSX. In such cases a full normalization
 // is needed to cater to all possible types of children values.
 function normalizeChildren (children) {
-  return isPrimitive(children)
+  return isPrimitive(children) // 判断children的类型是否string, number, symbol, boolean
     ? [createTextVNode(children)]
     : Array.isArray(children)
       ? normalizeArrayChildren(children)
@@ -5698,6 +5706,7 @@ function normalizeArrayChildren (children, nestedIndex) {
     //  nested
     if (Array.isArray(c)) {
       if (c.length > 0) {
+        // 这里的效果其实也是flatten
         c = normalizeArrayChildren(c, ((nestedIndex || '') + "_" + i));
         // merge adjacent text nodes
         if (isTextNode(c[0]) && isTextNode(last)) {
@@ -5706,7 +5715,7 @@ function normalizeArrayChildren (children, nestedIndex) {
         }
         res.push.apply(res, c);
       }
-    } else if (isPrimitive(c)) {
+    } else if (isPrimitive(c)) { // 这个分支和simple normalize 一样
       if (isTextNode(last)) {
         // merge adjacent text nodes
         // this is necessary for SSR hydration because text nodes are
@@ -6486,13 +6495,13 @@ function createElement (
   children,
   normalizationType,
   alwaysNormalize
-) {
-  if (Array.isArray(data) || isPrimitive(data)) {
+) { // 这里的tag, data, children, normalizationType就是对应文档里的参数, 所以文档里的render函数返回的就是一个vnode哦.
+  if (Array.isArray(data) || isPrimitive(data)) { // 这里是做api兼容, 因为data在api里可以不传, 判断data其实是children的话就把参数调整下
     normalizationType = children;
     children = data;
     data = undefined;
   }
-  if (isTrue(alwaysNormalize)) {
+  if (isTrue(alwaysNormalize)) { // 不太清楚, 在initRender的时候定义vm.$createElement把这个值写死成true.
     normalizationType = ALWAYS_NORMALIZE;
   }
   return _createElement(context, tag, data, children, normalizationType)
@@ -6504,7 +6513,7 @@ function _createElement (
   data,
   children,
   normalizationType
-) {
+) { // 就是这个方法产生vnode的, 也就是render函数里的第一个参数:createElement.
   if (isDef(data) && isDef((data).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       "Avoid using observed data object as vnode data: " + (JSON.stringify(data)) + "\n" +
@@ -6514,7 +6523,7 @@ function _createElement (
     return createEmptyVNode()
   }
   // object syntax in v-bind
-  if (isDef(data) && isDef(data.is)) {
+  if (isDef(data) && isDef(data.is)) { // 也就是 component :is 的情况
     tag = data.is;
   }
   if (!tag) {
@@ -6541,28 +6550,30 @@ function _createElement (
     data.scopedSlots = { default: children[0] };
     children.length = 0;
   }
-  if (normalizationType === ALWAYS_NORMALIZE) {
+  if (normalizationType === ALWAYS_NORMALIZE) {   // todo看这2个方法
     children = normalizeChildren(children);
   } else if (normalizationType === SIMPLE_NORMALIZE) {
     children = simpleNormalizeChildren(children);
   }
   var vnode, ns;
-  if (typeof tag === 'string') {
+  if (typeof tag === 'string') { // tag是string
     var Ctor;
-    ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
-    if (config.isReservedTag(tag)) {
+    ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag); // 如果有旧的取旧的, 没得就获得, 用来判断svg或者math
+    if (config.isReservedTag(tag)) { // case: 是平台相关的标签(div, span)
       // platform built-in elements
-      vnode = new VNode(
-        config.parsePlatformTagName(tag), data, children,
+      vnode = new VNode( //
+        config.parsePlatformTagName(tag), data, children, // 这个config.parsePlatformTagName的具体内容是: _ => _ 是什么就返回什么.
         undefined, undefined, context
       );
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+      // resolveAsset: 如果有 options.components[tag], 就返回他, 也就是返回了一个component
       // component
       vnode = createComponent(Ctor, data, context, children, tag);
     } else {
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
+      // 对这个情况在后面做处理~ 这里先正常返回, 也就是未知标签
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
@@ -6570,6 +6581,7 @@ function _createElement (
     }
   } else {
     // direct component options / constructor
+    // 另一种语法: 直接传component options的情况, 用component options 创建子component, 这里的tag是component options
     vnode = createComponent(tag, data, context, children);
   }
   if (Array.isArray(vnode)) {
@@ -7228,14 +7240,16 @@ function createComponent (
     return
   }
 
-  var baseCtor = context.$options._base;
+  var baseCtor = context.$options._base; // 这个值是Vue
 
   // plain options object: turn it into a constructor
-  if (isObject(Ctor)) {
+  if (isObject(Ctor)) { // 这个component应该就是  `{data: ..., methods: ..., template: ...}`  吧, 所以extend他
     Ctor = baseCtor.extend(Ctor);
   }
 
-  // if at this stage it's not a constructor or an async component factory,
+  // 至此: Ctor是子Vue实例, baseCtor是根Vue实例
+
+  // if at this stage it's not a constructor or an async component factory, // 滤错
   // reject.
   if (typeof Ctor !== 'function') {
     if (process.env.NODE_ENV !== 'production') {
@@ -7246,13 +7260,14 @@ function createComponent (
 
   // async component
   var asyncFactory;
-  if (isUndef(Ctor.cid)) {
+  if (isUndef(Ctor.cid)) { // cid是在extend的时候添加的, 意义是child id, 也就是这个这个component是被extend出来了.
     asyncFactory = Ctor;
     Ctor = resolveAsyncComponent(asyncFactory, baseCtor, context);
     if (Ctor === undefined) {
       // return a placeholder node for async component, which is rendered
       // as a comment node but preserves all the raw information for the node.
       // the information will be used for async server-rendering and hydration.
+      // 根据这句话的解释, 这段代码先不看了. 和主线关系不大.
       return createAsyncPlaceholder(
         asyncFactory,
         data,
@@ -7267,9 +7282,10 @@ function createComponent (
 
   // resolve constructor options in case global mixins are applied after
   // component constructor creation
-  resolveConstructorOptions(Ctor);
+  resolveConstructorOptions(Ctor); // 这个方法在init的时候也调过, 这里是防止代码顺序的问题导致global mixins没有被加载.
 
   // transform component v-model data into props & events
+  // 处理v-model的语法糖, transformModel这个方法可以看到v-model的具体做法.(默认是value和input, 但是可以设置.)
   if (isDef(data.model)) {
     transformModel(Ctor.options, data);
   }
@@ -7287,6 +7303,7 @@ function createComponent (
   var listeners = data.on;
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
+  // 所以在一些没有click事件的组件里用.native修饰符就可以绑定事件.
   data.on = data.nativeOn;
 
   if (isTrue(Ctor.options.abstract)) {
@@ -7304,7 +7321,7 @@ function createComponent (
   // install component management hooks onto the placeholder node
   installComponentHooks(data);
 
-  // return a placeholder vnode
+  // return a placeholder vnode // createComponent对参数进行一些处理以后的结果也就是返回一个vnode.
   var name = Ctor.options.name || tag;
   var vnode = new VNode(
     ("vue-component-" + (Ctor.cid) + (name ? ("-" + name) : '')),

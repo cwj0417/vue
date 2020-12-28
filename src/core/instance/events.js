@@ -13,7 +13,7 @@ export function initEvents (vm: Component) {
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
-  const listeners = vm.$options._parentListeners
+  const listeners = vm.$options._parentListeners // 这个要在 initInternalComponent 以后才有的. 和component有关, 以后再看
   if (listeners) {
     updateComponentListeners(vm, listeners)
   }

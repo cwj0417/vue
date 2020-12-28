@@ -98,6 +98,7 @@ export default class Watcher {
    * Evaluate the getter, and re-collect dependencies.
    */
   get () {
+    console.log('----- start watch')
     pushTarget(this)
     // 进入队列, 把当前watcher设置为Dep.target
     // 这样下面调用getter的时候出发的dep.append() (最后调用Dep.target.addDep()) 就会调用这个watcher的addDep.
@@ -123,6 +124,7 @@ export default class Watcher {
       if (this.deep) {
         traverse(value)
       }
+      console.log('end watch ------')
       popTarget() // 移除队列
       this.cleanupDeps() // 清理依赖(addDep加到newDep数组, 这步做整理动作)
     }
@@ -169,6 +171,7 @@ export default class Watcher {
    * Will be called when a dependency changes.
    */
   update () {
+    // console.log('update', this)
     /* istanbul ignore else */
     if (this.lazy) {
       this.dirty = true
@@ -185,7 +188,9 @@ export default class Watcher {
    */
   run () {
     if (this.active) {
+      // console.log('run, run get')
       const value = this.get()
+      // console.log(value, isObject)
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even

@@ -12,7 +12,8 @@
   <div>
     <input type="text" v-model="toAdd" @keyup.enter="add">
     <div class="todo-item-wrap" v-for="(todo, index) in todos" :key="index">
-      <date-comp :value="todo.start"></date-comp>
+      <!-- <date-comp v-model="todo.start"></date-comp> -->
+      {{todo.start}}
       <i class="fa fa-check"></i>
       {{todo.todo}}
     </div>
@@ -27,51 +28,48 @@
     return new Date().getFullYear() + to10(new Date().getMonth() + 1).toString() + to10(new Date().getDate()).toString()
   }
   const todos = [{
-    "start": "20180622", "todo": "完善{{did}}options界面的tag颜色配置"
-  }, {
-    "start": "20180712", "todo": "{{did}}标签的问题, 之前用push代替unshift的问题, 需要查找原因, 可以写博客"
-  }, {
-    "start": "20180731", "todo": "研究pwa那个加载中的空架子"
-  }, {
-    "start": "20181026", "todo": "看{{nightwatch.js}}"
-  }, {
-    "start": "20181029", "todo": "想办法做一个取字段的方法"
-  }, {
-    "start": "20181117", "todo": "看下vux的range"
-  }, {
-    "start": "20181219", "todo": "学英语"
-  }, {
-    "start": "20181224", "todo": "看乌合之众"
-  }, {
-    "start": "20181225", "todo": "看youdontknowjs"
-  }, {
-    "start": "20190108", "todo": "看金字塔原理"
-  }, {
-    "start": "20190112", "todo": "博客: 杀跌追涨/商城内外冷热判断/吃饭多买/被雨淋"
+    'start': '20180622', 'todo': '完善{{did}}options界面的tag颜色配置'
+  // }, {
+  //   'start': '20180712', 'todo': '{{did}}标签的问题, 之前用push代替unshift的问题, 需要查找原因, 可以写博客'
+  // }, {
+  //   'start': '20180731', 'todo': '研究pwa那个加载中的空架子'
+  // }, {
+  //   'start': '20181026', 'todo': '看{{nightwatch.js}}'
+  // }, {
+  //   'start': '20181029', 'todo': '想办法做一个取字段的方法'
+  // }, {
+  //   'start': '20181117', 'todo': '看下vux的range'
+  // }, {
+  //   'start': '20181219', 'todo': '学英语'
+  // }, {
+  //   'start': '20181224', 'todo': '看乌合之众'
+  // }, {
+  //   'start': '20181225', 'todo': '看youdontknowjs'
+  // }, {
+  //   'start': '20190108', 'todo': '看金字塔原理'
+  // }, {
+  //   'start': '20190112', 'todo': '博客: 杀跌追涨/商城内外冷热判断/吃饭多买/被雨淋'
   }]
   const DateComp = {
     props: ['value'],
     render (h) {
       return h(
         'span',
-        this.value.substr(4, 4)
+        this.value
       )
     }
   }
   const App = {
-    components: {DateComp},
+    components: { DateComp },
     data () {
       return {
         todos,
         toAdd: ''
       }
     },
-    computed: {
-
-    },
     methods: {
       add () {
-        this.todos.unshift({start: date28(), todo: this.toAdd})
+        this.todos.unshift({ start: date28(), todo: this.toAdd })
         this.toAdd = ''
       }
     },
@@ -79,10 +77,11 @@
 
     }
   }
-  new Vue({
+  const instance = new Vue({
     ...App,
     template: '#app',
-  }).$mount('#app')
+    el: '#app'
+  })
 </script>
 </body>
 </html>

@@ -148,7 +148,8 @@ export function mountComponent (
   hydrating?: boolean
 ): Component {
   vm.$el = el // 放一份el到自己的属性里
-  if (!vm.$options.render) { // render应该经过处理了, 因为我们经常都是用template或者vue文件
+  if (!vm.$options.render) {  // 走到这里还没有render是错误的, 报错.
+    // render应该经过处理了, 因为我们经常都是用template或者vue文件
     // 判断是否存在render函数, 如果没有就把render函数写成空VNode来避免红错, 并报出黄错
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
@@ -173,35 +174,17 @@ export function mountComponent (
 
   let updateComponent
   /* istanbul ignore if */
-  if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
-    // 不看这里的代码了, 直接看else里的, 行为是一样的
-    updateComponent = () => {
-      const name = vm._name
-      const id = vm._uid
-      const startTag = `vue-perf-start:${id}`
-      const endTag = `vue-perf-end:${id}`
 
-      mark(startTag)
-      const vnode = vm._render()
-      mark(endTag)
-      measure(`vue ${name} render`, startTag, endTag)
-
-      mark(startTag)
-      vm._update(vnode, hydrating)
-      mark(endTag)
-      measure(`vue ${name} patch`, startTag, endTag)
-    }
-  } else {
     updateComponent = () => {
+      // console.log('update mount');
       vm._update(vm._render(), hydrating) // vm.render(): 返回当前所在vue实例的vnode, vm.update: 根据vnode来更新视图.
     }
-  }
 
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
   // 注册一个Watcher
-  new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */)
+  console.log('render watcher:', new Watcher(vm, updateComponent, noop, null, true /* isRenderWatcher */))
   hydrating = false
 
   // manually mounted instance, call mounted on self

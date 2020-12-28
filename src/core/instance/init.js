@@ -19,15 +19,6 @@ export function initMixin (Vue: Class<Component>) {
     // a uid
     vm._uid = uid++
 
-    let startTag, endTag
-    /* istanbul ignore if */
-    // 如果配置里有'performance'就打印性能
-    if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
-      startTag = `vue-perf-start:${vm._uid}`
-      endTag = `vue-perf-end:${vm._uid}`
-      mark(startTag)
-    }
-
     // a flag to avoid this being observed
     vm._isVue = true
     // merge options
@@ -38,17 +29,13 @@ export function initMixin (Vue: Class<Component>) {
       initInternalComponent(vm, options)
     } else {
       vm.$options = mergeOptions(
-        resolveConstructorOptions(vm.constructor),
+        resolveConstructorOptions(vm.constructor), // 平台相关的mixins
         options || {},
         vm
       )
     }
-    /* istanbul ignore else */
-    if (process.env.NODE_ENV !== 'production') {
-      initProxy(vm)
-    } else {
-      vm._renderProxy = vm
-    }
+    vm._renderProxy = vm
+
     // expose real self
     vm._self = vm
     // 下面这串是启动过程
@@ -56,18 +43,17 @@ export function initMixin (Vue: Class<Component>) {
     initLifecycle(vm)
     initEvents(vm)
     initRender(vm)
+
     callHook(vm, 'beforeCreate')
-    initInjections(vm) // resolve injections before data/props
+
+    initInjections(vm) // resolve injections before data/props // 不看, 不会用..
+
     initState(vm)
-    initProvide(vm) // resolve provide after data/props
+
+    initProvide(vm) // resolve provide after data/props // 先不看, 都不会用..
+
     callHook(vm, 'created')
 
-    /* istanbul ignore if */
-    if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
-      vm._name = formatComponentName(vm, false)
-      mark(endTag)
-      measure(`vue ${vm._name} init`, startTag, endTag)
-    }
     // 最后如果有el就调用$mount(el)
 
     if (vm.$options.el) {
